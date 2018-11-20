@@ -55,7 +55,6 @@ def parse_roxiefile(filepath):
     parse_cadata_filepath(roxiedata, content)
     parse_section(roxiedata, content, 'BLOCK', ['type', 'phi', 'current', 'alpha'])
     parse_section(roxiedata, content, 'PLOT2D', ['zxaxis'])
-    parse_section(roxiedata, content, 'LEAD', ['zxaxis'])
 
     with open(roxiedata['cadata']['filepath']) as f:
             cadata_content = f.readlines()
@@ -70,7 +69,6 @@ def test_parse_roxiefile():
     print roxiedata['BLOCK']
     print roxiedata['PLOT2D']
     print roxiedata['cadata']
-    print roxiedata['LEAD']
 
 
 if __name__ == '__main__':
