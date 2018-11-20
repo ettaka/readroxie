@@ -49,5 +49,6 @@ roxiedata = {}
 parse_version(roxiedata, content)
 parse_cadata(roxiedata, content)
 parse_section(roxiedata, content, 'BLOCK', 'alpha')
+parse_section(roxiedata, content, 'PLOT2D', 'zxaxis')
 
 print roxiedata
