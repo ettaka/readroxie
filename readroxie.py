@@ -15,7 +15,12 @@ def parse_cadata_filepath(roxiedata, content):
             roxiedata['cadata']['filepath'] = splitline[0].replace("'",'')
             return
 
-def parse_section(roxiedata, content, key, stopkey):
+def stopkeys_in_line(line, stopkeys):
+    for stopkey in stopkeys:
+        if not stopkey in line: return False
+    return True
+
+def parse_section(roxiedata, content, key, stopkeys):
     section = ''
     for i,line in enumerate(content):
         splitline = line.replace('\n','').replace('/','').split()
@@ -26,8 +31,8 @@ def parse_section(roxiedata, content, key, stopkey):
                 roxiedata[key] = []
                 section_lines = []
 
-        if section == key : 
-            if stopkey in line:
+        if section == key: 
+            if stopkeys_in_line(line, stopkeys):
                 header_vars = splitline
                 data = []
                 for section_line in section_lines:
@@ -39,21 +44,33 @@ def parse_section(roxiedata, content, key, stopkey):
             elif key not in line:
                 section_lines.append(splitline)
 
-filename = 'TEST.data'
-with open(filename) as f:
-	content = f.readlines()
+def parse_roxiefile(filepath):
+    with open(filepath) as f:
+            content = f.readlines()
 
-roxiedata = {}
-parse_version(roxiedata, content)
-parse_cadata_filepath(roxiedata, content)
-parse_section(roxiedata, content, 'BLOCK', 'alpha')
-parse_section(roxiedata, content, 'PLOT2D', 'zxaxis')
+    roxiedata = {}
+    parse_version(roxiedata, content)
+    parse_cadata_filepath(roxiedata, content)
+    parse_section(roxiedata, content, 'BLOCK', ['type', 'phi', 'current', 'alpha'])
+    parse_section(roxiedata, content, 'PLOT2D', ['zxaxis'])
 
-with open(roxiedata['cadata']['filepath']) as f:
-	cadata_content = f.readlines()
+    with open(roxiedata['cadata']['filepath']) as f:
+            cadata_content = f.readlines()
 
 
-parse_version(roxiedata['cadata'], cadata_content)
-parse_section(roxiedata['cadata'], cadata_content, 'CABLE', 'height')
+    parse_version(roxiedata['cadata'], cadata_content)
+    parse_section(roxiedata['cadata'], cadata_content, 'CABLE', ['No','height','width_o'])
+    return roxiedata
 
-print roxiedata['cadata']
+def test_parse_roxiefile():
+    roxiedata = parse_roxiefile('TEST.data')
+    print roxiedata['BLOCK']
+    print roxiedata['PLOT2D']
+    print roxiedata['cadata']
+
+
+if __name__ == '__main__':
+    test_parse_roxiefile()
+
+
+
