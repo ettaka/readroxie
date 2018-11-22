@@ -70,9 +70,13 @@ def test_parse_roxiefile():
     print roxiedata['PLOT2D']
     print roxiedata['cadata']
 
+def test_parse_roxiefile2():
+    roxiedata = parse_roxiefile('TEST.data')
+    print roxiedata['BLOCK'][0]
 
 if __name__ == '__main__':
-    test_parse_roxiefile()
+    #test_parse_roxiefile()
+    test_parse_roxiefile2()
 
 
 
