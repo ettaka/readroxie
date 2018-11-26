@@ -69,6 +69,15 @@ def make_box(bbox):
     sketch = sk.wire(marker)
     return geompy.MakeFaceWires([sketch], 1)
 
+def get_bbox_dim(compound, bbox_extra_factor_x = 1, bbox_extra_factor_y = 1):
+    bbox_dim = geompy.BoundingBox(compound)
+    x_side_len = bbox_dim[1]-bbox_dim[0]
+    y_side_len = bbox_dim[3]-bbox_dim[2]
+    bbox_x0 = bbox_dim[0]-bbox_extra_factor_x * x_side_len
+    bbox_x1 = bbox_dim[1]+bbox_extra_factor_x * x_side_len 
+    bbox_y0 = bbox_dim[2]-bbox_extra_factor_y * y_side_len
+    bbox_y1 = bbox_dim[3]+bbox_extra_factor_y * y_side_len 
+    return [bbox_x0, bbox_x1, bbox_y0, bbox_y1]
 
 def make_cable(x_dim, y_dim1, y_dim2):
     y_diff = y_dim2 - y_dim1
@@ -170,15 +179,6 @@ def make_blocks(block_geom_data_list):
         block_list.append(make_block(height,width_i,width_o,radius,phi,alpha,nco))
     return block_list
 
-def get_bbox_dim(compound, bbox_extra_factor_x = 1, bbox_extra_factor_y = 1):
-    bbox_dim = geompy.BoundingBox(compound)
-    x_side_len = bbox_dim[1]-bbox_dim[0]
-    y_side_len = bbox_dim[3]-bbox_dim[2]
-    bbox_x0 = bbox_dim[0]-bbox_extra_factor_x * x_side_len
-    bbox_x1 = bbox_dim[1]+bbox_extra_factor_x * x_side_len 
-    bbox_y0 = bbox_dim[2]-bbox_extra_factor_y * y_side_len
-    bbox_y1 = bbox_dim[3]+bbox_extra_factor_y * y_side_len 
-    return [bbox_x0, bbox_x1, bbox_y0, bbox_y1]
 
 geompy.addToStudy( O, 'O' )
 geompy.addToStudy( OX, 'OX' )
