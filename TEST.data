@@ -1,7 +1,7 @@
 VERSION 10.2.1
 '                                                                                   '
-'roxie.bhdata           '
-'roxie_vs10.cadata                               '
+'/home/eetakala/git/readroxie/roxie.bhdata           '
+'/home/eetakala/git/readroxie/roxie_vs10.cadata                               '
 
 &OPTION
   LEND=F     LWEDG=F    LPERS=F    LQUENCH=F  LALGO=F    LQUENCH0D=F

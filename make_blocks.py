@@ -12,7 +12,9 @@ theStudy = salome.myStudy
 
 import salome_notebook
 notebook = salome_notebook.NoteBook(theStudy)
+sys.path.insert( 0, r'/home/eetakala/git/readroxie')
 sys.path.insert( 0, r'/home/eelis/git/readroxie')
+HOME='/home/eetakala/git/readroxie/'
 
 ###
 ### GEOM component
@@ -23,18 +25,7 @@ from salome.geom import geomBuilder
 import math
 import SALOMEDS
 
-{'condname': 'XF145HTH5', 
- 'phi': '0.28648', 
- 'no': '1', 
- 'imag': '0', 
- 'current': '10', 
- 'turn': '0', 
- 'n1': '2', 
- 'radius': '75', 
- 'nco': '17', 
- 'alpha': '0', 
- 'n2': '20', 
- 'type': '1'}
+import readroxie
 
 geompy = geomBuilder.New(theStudy)
 O = geompy.MakeVertex(0, 0, 0)
@@ -45,7 +36,10 @@ marker = geompy.MakeMarker(0, 0, 0, 1, 0, 0, 0, 1, 0)
 
 def circle_line_point(k,c,r):
     x = (-2*k*c+math.sqrt((2*k*c)**2.-4*(1+k**2.)*(c**2.-r**2.)))/(2*(1+k**2.))
-    y = math.sqrt(r**2.-x**2.)
+    try:
+        y = math.sqrt(r**2.-x**2.)
+    except:
+        y = 0
     return (x,y)
 
 def line_parameters(p1, p2):
@@ -60,6 +54,22 @@ def line_parameters(p1, p2):
     c = p2_coord[1] - k * p2_coord[0] 
     return (k, c)
 
+def make_box(bbox):
+    x0 = bbox[0]
+    x1 = bbox[1]
+    y0 = bbox[2]
+    y1 = bbox[3]
+
+    sk = geompy.Sketcher2D()
+    sk.addPoint(x0, y0)
+    sk.addSegmentAbsolute(x0, y1)
+    sk.addSegmentAbsolute(x1, y1)
+    sk.addSegmentAbsolute(x1, y0)
+    sk.close()
+    sketch = sk.wire(marker)
+    return geompy.MakeFaceWires([sketch], 1)
+
+
 def make_cable(x_dim, y_dim1, y_dim2):
     y_diff = y_dim2 - y_dim1
     phi_0 = math.atan(y_diff/(2.*x_dim))
@@ -73,7 +83,7 @@ def make_cable(x_dim, y_dim1, y_dim2):
     geompy.Rotate(sketch, OZ, phi_0)
     return geompy.MakeFaceWires([sketch], 1)
 
-def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, noc):
+def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, nco):
     cables = []
     cut_points = []
 
@@ -90,6 +100,11 @@ def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, noc):
     p3 = geompy.GetSubShape(cable, [7])
     p4 = geompy.GetSubShape(cable, [5])
 
+    #geompy.addToStudy(p1, 'p1')
+    #geompy.addToStudy(p2, 'p2')
+    #geompy.addToStudy(p3, 'p3')
+    #geompy.addToStudy(p4, 'p4')
+
     k_mv, c_mv = line_parameters(p1, p2)
     r_min_d = (r_min[0] + 1., r_min[1] + k_mv)
     p_mv_1 = geompy.MakeVertex(r_min[0], r_min[1], 0)
@@ -100,7 +115,7 @@ def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, noc):
 
     geompy.TranslateDXDYDZ(cable, r_mv[0], r_mv[1], 0, 0)
 
-    for i in range(1,noc):
+    for i in range(1,nco):
 
         p1 = geompy.GetSubShape(cable, [4])
         p2 = geompy.GetSubShape(cable, [9])
@@ -142,14 +157,46 @@ def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, noc):
 
     return cables_compound
     
+def make_blocks(block_geom_data_list):
+    block_list = []
+    for i, block_geom_data in enumerate(block_geom_data_list):
+        height = block_geom_data['height']
+        width_i = block_geom_data['width_i']
+        width_o = block_geom_data['width_o']
+        radius = block_geom_data['radius']
+        phi = block_geom_data['phi']
+        alpha = block_geom_data['alpha']
+        nco = block_geom_data['nco']
+        block_list.append(make_block(height,width_i,width_o,radius,phi,alpha,nco))
+    return block_list
 
-block = make_block(10.,2,1,50.,24.,35,6)
+def get_bbox_dim(compound, bbox_extra_factor_x = 1, bbox_extra_factor_y = 1):
+    bbox_dim = geompy.BoundingBox(compound)
+    x_side_len = bbox_dim[1]-bbox_dim[0]
+    y_side_len = bbox_dim[3]-bbox_dim[2]
+    bbox_x0 = bbox_dim[0]-bbox_extra_factor_x * x_side_len
+    bbox_x1 = bbox_dim[1]+bbox_extra_factor_x * x_side_len 
+    bbox_y0 = bbox_dim[2]-bbox_extra_factor_y * y_side_len
+    bbox_y1 = bbox_dim[3]+bbox_extra_factor_y * y_side_len 
+    return [bbox_x0, bbox_x1, bbox_y0, bbox_y1]
+
 geompy.addToStudy( O, 'O' )
 geompy.addToStudy( OX, 'OX' )
 geompy.addToStudy( OY, 'OY' )
 geompy.addToStudy( OZ, 'OZ' )
-geompy.addToStudy( block, 'block' )
 
+directory = HOME+'/11T_quadrant_ac/'
+roxie_file_path = '11T_quadrant_in_homogenic_field.data'
+roxiedata = readroxie.parse_roxiefile(directory, roxie_file_path)
+
+block_geom_data_list = readroxie.get_block_geom_data_list(roxiedata)
+block_list = make_blocks(block_geom_data_list)
+block_compound = geompy.MakeCompound(block_list)
+get_bbox_dim(block_compound)
+bbox = make_box([bbox_x0,bbox_x1,bbox_y0,bbox_y1])
+
+geompy.addToStudy( block_compound, 'block_compound' )
+geompy.addToStudy( bbox, 'bbox' )
 
 if salome.sg.hasDesktop():
   salome.sg.updateObjBrowser(True)
