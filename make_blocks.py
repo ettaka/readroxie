@@ -107,13 +107,19 @@ def get_bbox_dim(compound, bbox_extra_factor_x = 1, bbox_extra_factor_y = 1):
     bbox_y1 = bbox_dim[3]+bbox_extra_factor_y * y_side_len 
     return [bbox_x0, bbox_x1, bbox_y0, bbox_y1]
 
-def make_cable(x_dim, y_dim1, y_dim2):
+def make_cable(x_dim, y_dim1, y_dim2, use_storage=False):
     y_diff = y_dim2 - y_dim1
     phi_0 = math.atan(y_diff/(2.*x_dim))
-    p1 = point_storage.make_vertex(0.,0.,0.)
-    p2 = point_storage.make_vertex(x_dim, -y_diff/2.,0.)
-    p3 = point_storage.make_vertex(x_dim, y_dim1 + y_diff/2.,0.)
-    p4 = point_storage.make_vertex(0.,y_dim1,0.)
+    if use_storage:
+        p1 = point_storage.make_vertex(0.,0.,0.)
+        p2 = point_storage.make_vertex(x_dim, -y_diff/2.,0.)
+        p3 = point_storage.make_vertex(x_dim, y_dim1 + y_diff/2.,0.)
+        p4 = point_storage.make_vertex(0.,y_dim1,0.)
+    else:
+        p1 = geompy.MakeVertex(0.,0.,0.)
+        p2 = geompy.MakeVertex(x_dim, -y_diff/2.,0.)
+        p3 = geompy.MakeVertex(x_dim, y_dim1 + y_diff/2.,0.)
+        p4 = geompy.MakeVertex(0.,y_dim1,0.)
     line1 = geompy.MakeLineTwoPnt(p1, p2)
     line2 = geompy.MakeLineTwoPnt(p2, p3)
     line3 = geompy.MakeLineTwoPnt(p3, p4)
