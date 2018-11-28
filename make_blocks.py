@@ -34,6 +34,34 @@ OY = geompy.MakeVectorDXDYDZ(0, 1, 0)
 OZ = geompy.MakeVectorDXDYDZ(0, 0, 1)
 marker = geompy.MakeMarker(0, 0, 0, 1, 0, 0, 0, 1, 0)
 
+def close_enough(a, b, eps):
+    return abs(a-b)<eps
+
+def coordinates_close_enough(coord1, coord2, eps):
+    return close_enough(coord1[0], coord2[0], eps) and close_enough(coord1[1], coord2[1], eps) and close_enough(coord1[2], coord2[2], eps)
+
+class PointStorage:
+    
+    def __init__(self, name):
+        self.name = name
+        self.points = []
+
+    def find_point_by_coordinates(self, x,y,z, eps):
+        for point in self.points:
+            coord1 = geompy.PointCoordinates(point)
+            coord2 = (x, y, z)
+            if coordinates_close_enough(coord1, coord2, eps):
+                print "Found a point (", x, y, z, "), instead creating a new one"
+                return point
+        return None
+
+    def make_vertex(self, x, y, z, eps=1e-6):
+        p = self.find_point_by_coordinates(x, y, z, eps)
+        if p == None:
+            p = geompy.MakeVertex(x,y,z)
+            self.points.append(p)
+        return p
+
 def circle_line_point(k,c,r):
     x = (-2*k*c+math.sqrt((2*k*c)**2.-4*(1+k**2.)*(c**2.-r**2.)))/(2*(1+k**2.))
     try:
@@ -82,15 +110,17 @@ def get_bbox_dim(compound, bbox_extra_factor_x = 1, bbox_extra_factor_y = 1):
 def make_cable(x_dim, y_dim1, y_dim2):
     y_diff = y_dim2 - y_dim1
     phi_0 = math.atan(y_diff/(2.*x_dim))
-    sk = geompy.Sketcher2D()
-    sk.addPoint(0.000000, 0.000000)
-    sk.addSegmentAbsolute(0.000000, y_dim1)
-    sk.addSegmentAbsolute(x_dim, y_dim1 + y_diff/2.)
-    sk.addSegmentAbsolute(x_dim, -y_diff/2.)
-    sk.close()
-    sketch = sk.wire(marker)
-    geompy.Rotate(sketch, OZ, phi_0)
-    return geompy.MakeFaceWires([sketch], 1)
+    p1 = point_storage.make_vertex(0.,0.,0.)
+    p2 = point_storage.make_vertex(x_dim, -y_diff/2.,0.)
+    p3 = point_storage.make_vertex(x_dim, y_dim1 + y_diff/2.,0.)
+    p4 = point_storage.make_vertex(0.,y_dim1,0.)
+    line1 = geompy.MakeLineTwoPnt(p1, p2)
+    line2 = geompy.MakeLineTwoPnt(p2, p3)
+    line3 = geompy.MakeLineTwoPnt(p3, p4)
+    line4 = geompy.MakeLineTwoPnt(p4, p1)
+    face = geompy.MakeFaceWires([line1, line2, line3, line4], 1)
+    geompy.Rotate(face, OZ, phi_0)
+    return face 
 
 def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, nco):
     cables = []
@@ -105,19 +135,19 @@ def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, nco):
     r_min = geompy.ClosestPoints(O,cable)[1][3:6]
 
     p1 = geompy.GetSubShape(cable, [4])
-    p2 = geompy.GetSubShape(cable, [9])
+    p2 = geompy.GetSubShape(cable, [5])
     p3 = geompy.GetSubShape(cable, [7])
-    p4 = geompy.GetSubShape(cable, [5])
+    p4 = geompy.GetSubShape(cable, [9])
 
-    #geompy.addToStudy(p1, 'p1')
-    #geompy.addToStudy(p2, 'p2')
-    #geompy.addToStudy(p3, 'p3')
-    #geompy.addToStudy(p4, 'p4')
+#    geompy.addToStudy(p1, 'p1')
+#    geompy.addToStudy(p2, 'p2')
+#    geompy.addToStudy(p3, 'p3')
+#    geompy.addToStudy(p4, 'p4')
 
     k_mv, c_mv = line_parameters(p1, p2)
     r_min_d = (r_min[0] + 1., r_min[1] + k_mv)
-    p_mv_1 = geompy.MakeVertex(r_min[0], r_min[1], 0)
-    p_mv_2 = geompy.MakeVertex(r_min_d[0], r_min_d[1], 0)
+    p_mv_1 = point_storage.make_vertex(r_min[0], r_min[1], 0)
+    p_mv_2 = point_storage.make_vertex(r_min_d[0], r_min_d[1], 0)
     k_cut_mv, c_cut_mv = line_parameters(p_mv_1, p_mv_2)
     x_cut_mv, y_cut_mv = circle_line_point(k_cut_mv, c_cut_mv, r)
     r_mv = (x_cut_mv-r_min[0], y_cut_mv-r_min[1])
@@ -127,9 +157,9 @@ def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, nco):
     for i in range(1,nco):
 
         p1 = geompy.GetSubShape(cable, [4])
-        p2 = geompy.GetSubShape(cable, [9])
+        p2 = geompy.GetSubShape(cable, [5])
         p3 = geompy.GetSubShape(cable, [7])
-        p4 = geompy.GetSubShape(cable, [5])
+        p4 = geompy.GetSubShape(cable, [9])
 
         k, c = line_parameters(p4, p3)
         x_cut, y_cut = circle_line_point(k, c, r)
@@ -145,20 +175,20 @@ def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, nco):
         r_min = geompy.ClosestPoints(O,cable)[1][3:6]
 
         p1 = geompy.GetSubShape(cable, [4])
-        p2 = geompy.GetSubShape(cable, [9])
+        p2 = geompy.GetSubShape(cable, [5])
         p3 = geompy.GetSubShape(cable, [7])
-        p4 = geompy.GetSubShape(cable, [5])
+        p4 = geompy.GetSubShape(cable, [9])
 
         k_mv, c_mv = line_parameters(p1, p2)
         r_min_d = (r_min[0] + 1., r_min[1] + k_mv)
-        p_mv_1 = geompy.MakeVertex(r_min[0], r_min[1], 0)
-        p_mv_2 = geompy.MakeVertex(r_min_d[0], r_min_d[1], 0)
+        p_mv_1 = point_storage.make_vertex(r_min[0], r_min[1], 0)
+        p_mv_2 = point_storage.make_vertex(r_min_d[0], r_min_d[1], 0)
         k_cut_mv, c_cut_mv = line_parameters(p_mv_1, p_mv_2)
         x_cut_mv, y_cut_mv = circle_line_point(k_cut_mv, c_cut_mv, r)
         r_mv = (x_cut_mv-r_min[0], y_cut_mv-r_min[1])
         #geompy.addToStudy(p_mv_1, 'p_mv_1' + str(i))
         #geompy.addToStudy(p_mv_2, 'p_mv_2' + str(i))
-        #geompy.addToStudy(geompy.MakeVertex(x_cut_mv, y_cut_mv, 0), 'cut' + str(i))
+        #geompy.addToStudy(point_storage.make_vertex(x_cut_mv, y_cut_mv, 0), 'cut' + str(i))
         geompy.TranslateDXDYDZ(cable, r_mv[0], r_mv[1], 0, 0)
 
     cables_compound = geompy.MakeCompound(cables)
@@ -179,6 +209,7 @@ def make_blocks(block_geom_data_list):
         block_list.append(make_block(height,width_i,width_o,radius,phi,alpha,nco))
     return block_list
 
+point_storage = PointStorage("block points")
 
 geompy.addToStudy( O, 'O' )
 geompy.addToStudy( OX, 'OX' )
@@ -190,13 +221,14 @@ roxie_file_path = '11T_quadrant_in_homogenic_field.data'
 roxiedata = readroxie.parse_roxiefile(directory, roxie_file_path)
 
 block_geom_data_list = readroxie.get_block_geom_data_list(roxiedata)
-block_list = make_blocks(block_geom_data_list)
+block_list = make_blocks(block_geom_data_list)[0:6]
 block_compound = geompy.MakeCompound(block_list)
 bbox_dim = get_bbox_dim(block_compound)
 bbox = make_box(bbox_dim)
 
-geompy.addToStudy( block_compound, 'block_compound' )
-geompy.addToStudy( bbox, 'bbox' )
+geometry = geompy.MakePartition([bbox,block_compound], [])
+
+geompy.addToStudy( geometry, 'geometry' )
 
 if salome.sg.hasDesktop():
   salome.sg.updateObjBrowser(True)
