@@ -62,6 +62,9 @@ class PointStorage:
             self.points.append(p)
         return p
 
+    def empty_storage(self):
+        self.points = []
+
 def circle_line_point(k,c,r):
     x = (-2*k*c+math.sqrt((2*k*c)**2.-4*(1+k**2.)*(c**2.-r**2.)))/(2*(1+k**2.))
     try:
@@ -127,6 +130,16 @@ def make_cable(x_dim, y_dim1, y_dim2, use_storage=False):
     face = geompy.MakeFaceWires([line1, line2, line3, line4], 1)
     geompy.Rotate(face, OZ, phi_0)
     return face 
+
+def make_cable_with_points(points, eps=1e-6):
+    stored_points = []
+    for point in points:
+        stored_points.append(point_storage.make_vertex(*geompy.PointCoordinates(point), eps=eps))
+    line1 = geompy.MakeLineTwoPnt(stored_points[0], stored_points[1])
+    line2 = geompy.MakeLineTwoPnt(stored_points[1], stored_points[2])
+    line3 = geompy.MakeLineTwoPnt(stored_points[2], stored_points[3])
+    line4 = geompy.MakeLineTwoPnt(stored_points[3], stored_points[0])
+    return geompy.MakeFaceWires([line1, line2, line3, line4], 1)
 
 def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, nco):
     cables = []
@@ -197,10 +210,22 @@ def make_block(x_dim, y_dim1, y_dim2, r, phi, alpha, nco):
         #geompy.addToStudy(point_storage.make_vertex(x_cut_mv, y_cut_mv, 0), 'cut' + str(i))
         geompy.TranslateDXDYDZ(cable, r_mv[0], r_mv[1], 0, 0)
 
-    cables_compound = geompy.MakeCompound(cables)
+    cables_eps = redo_cables_with_storage(cables, eps=1e-1)
+    cables_compound = geompy.MakeCompound(cables_eps)
     geompy.Rotate(cables_compound, OZ, phi*math.pi/180.)
 
     return cables_compound
+
+def redo_cables_with_storage(cables, eps=1e-6):
+    point_storage.empty_storage()
+    new_cables = []
+    for cable in cables:
+        p1 = geompy.GetSubShape(cable, [4])
+        p2 = geompy.GetSubShape(cable, [5])
+        p3 = geompy.GetSubShape(cable, [7])
+        p4 = geompy.GetSubShape(cable, [9])
+        new_cables.append(make_cable_with_points([p1, p2, p3, p4], eps=eps))
+    return new_cables
     
 def make_blocks(block_geom_data_list):
     block_list = []
