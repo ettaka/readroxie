@@ -58,13 +58,14 @@ def parse_roxiefile(directory, filepath):
     parse_section(roxiedata, content, 'EULER', ['no','x','y', 'alph', 'bet'])
     parse_section(roxiedata, content, 'LAYER', ['no','symm','typexy', 'blocks'])
 
-    with open(directory + '/' + roxiedata['cadata']['filepath']) as f:
+    with open(roxiedata['cadata']['filepath']) as f:
             cadata_content = f.readlines()
 
 
     parse_version(roxiedata['cadata'], cadata_content)
     parse_section(roxiedata['cadata'], cadata_content, 'CABLE', ['No','height','width_o'])
     parse_section(roxiedata['cadata'], cadata_content, 'CONDUCTOR', ['No','Name','Strand', 'Filament', 'Trans'])
+    parse_section(roxiedata['cadata'], cadata_content, 'INSUL', ['No','Name','Radial', 'Azimut', 'Comment'])
     return roxiedata
 
 def get_section_data_by_name(section_list, data_name):
@@ -91,6 +92,10 @@ def get_block_geom_data_list(roxiedata):
         conddata = get_section_data_by_name(cable_data['CONDUCTOR'], condname)
         cablegeomname = conddata['CableGeom.']
         cablegeomdata = get_section_data_by_name(cable_data['CABLE'], cablegeomname)
+
+        insulname = conddata['Insul']
+        insuldata = get_section_data_by_name(cable_data['INSUL'], insulname)
+
         #print "Conductor name: ", condname
         #print "---------------------------"
         #print "block data:", block_data
@@ -103,21 +108,23 @@ def get_block_geom_data_list(roxiedata):
         block_geom_data['phi'] = float_from_dict(block_data,'phi')
         block_geom_data['alpha'] = float_from_dict(block_data,'alpha')
         block_geom_data['nco'] = int_from_dict(block_data,'nco')
+        block_geom_data['insul_radial'] = float_from_dict(insuldata,'Radial')
+        block_geom_data['insul_azimut'] = float_from_dict(insuldata,'Azimut')
     return block_geom_data_list
 
 def test_parse_roxiefile():
-    roxiedata = parse_roxiefile('TEST.data')
+    roxiedata = parse_roxiefile('/home/eetakala/git/readroxie/', 'TEST.data')
     print roxiedata['BLOCK']
     print roxiedata['PLOT2D']
     print roxiedata['cadata']
 
 def test_parse_roxiefile2():
-    roxiedata = parse_roxiefile('TEST.data')
+    roxiedata = parse_roxiefile('/home/eetakala/git/readroxie/','TEST.data')
     print roxiedata['BLOCK'][0]
 
 if __name__ == '__main__':
-    #test_parse_roxiefile()
-    test_parse_roxiefile2()
+    test_parse_roxiefile()
+    #test_parse_roxiefile2()
 
 
 

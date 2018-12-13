@@ -237,7 +237,9 @@ def make_blocks(block_geom_data_list):
         phi = block_geom_data['phi']
         alpha = block_geom_data['alpha']
         nco = block_geom_data['nco']
-        block_list.append(make_block(height,width_i,width_o,radius,phi,alpha,nco))
+        insul_radial = block_geom_data['insul_radial']
+        insul_azimut = block_geom_data['insul_azimut']
+        block_list.append(make_block(height+insul_radial,width_i+insul_azimut,width_o+insul_radial,radius,phi,alpha,nco))
     return block_list
 
 point_storage = PointStorage("block points")
@@ -252,7 +254,7 @@ roxie_file_path = '11T_quadrant_in_homogenic_field.data'
 roxiedata = readroxie.parse_roxiefile(directory, roxie_file_path)
 
 block_geom_data_list = readroxie.get_block_geom_data_list(roxiedata)
-block_list = make_blocks(block_geom_data_list)[0:6]
+block_list = [ make_blocks(block_geom_data_list)[i] for i in [0,4] ]
 block_compound = geompy.MakeCompound(block_list)
 bbox_dim = get_bbox_dim(block_compound)
 bbox = make_box(bbox_dim)
